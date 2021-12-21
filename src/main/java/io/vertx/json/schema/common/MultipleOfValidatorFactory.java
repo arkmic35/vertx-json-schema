@@ -15,6 +15,8 @@ import io.vertx.core.json.pointer.JsonPointer;
 import io.vertx.json.schema.SchemaException;
 import io.vertx.json.schema.ValidationException;
 
+import java.math.BigDecimal;
+
 public class MultipleOfValidatorFactory implements ValidatorFactory {
 
   @Override
@@ -44,8 +46,24 @@ public class MultipleOfValidatorFactory implements ValidatorFactory {
     @Override
     public void validateSync(ValidatorContext context, Object in) throws ValidationException {
       if (in instanceof Number) {
-        if (((Number) in).doubleValue() % multipleOf != 0) {
-          throw ValidationException.create("provided number should be multiple of " + multipleOf, "multipleOf", in);
+        // floating point arithmetic
+        BigDecimal inBD = null;
+        if (in instanceof BigDecimal) {
+          inBD = (BigDecimal) in;
+        }
+        if (in instanceof Float || in instanceof Double) {
+          inBD = BigDecimal.valueOf(((Number) in).doubleValue());
+        }
+        if (inBD != null) {
+          BigDecimal multipleOfBD = BigDecimal.valueOf(multipleOf);
+          if (inBD.remainder(multipleOfBD).compareTo(BigDecimal.ZERO) != 0) {
+            throw ValidationException.create("provided number should be multiple of " + multipleOf, "multipleOf", in);
+          }
+        } else {
+          // integer arithmetic
+          if (((Number) in).longValue() % multipleOf != 0) {
+            throw ValidationException.create("provided number should be multiple of " + multipleOf, "multipleOf", in);
+          }
         }
       }
     }
